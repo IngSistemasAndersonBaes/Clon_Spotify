@@ -1,17 +1,35 @@
-﻿const express = require('express');
+const express = require('express');
+const Joi = require('joi');
 const router = express.Router();
 
 const db = require('../db/conexion');
 const { formatDate, parseDateOnly } = require('../utils/date');
 const auth = require('../middlewares/auth');
+const { validateBody, validateQuery } = require('../middlewares/validate');
+
+const ventasQuerySchema = Joi.object({
+    inicio: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+    fin: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required()
+});
+
+const ventasBodySchema = Joi.object({
+    venta: Joi.string().optional(),
+    productos: Joi.string().optional(),
+    total_venta: Joi.number().positive().optional(),
+    vendedor: Joi.string().max(20).optional()
+}).custom((value, helpers) => {
+    if (value.venta) {
+        return value;
+    }
+    if (!value.productos || value.total_venta === undefined || !value.vendedor) {
+        return helpers.error('any.custom');
+    }
+    return value;
+}, 'validacion de ventas');
 
 // Ruta para obtener las ventas en un rango de fechas
-router.get('/ventas', auth, (req, res, next) => {
+router.get('/ventas', auth, validateQuery(ventasQuerySchema), (req, res, next) => {
     const { inicio, fin } = req.query;
-
-    if (!inicio || !fin) {
-        return res.status(400).json({ error: 'Se requieren las fechas de inicio y fin' });
-    }
 
     const fechaInicio = parseDateOnly(inicio);
     const fechaFin = parseDateOnly(fin);
@@ -27,7 +45,7 @@ router.get('/ventas', auth, (req, res, next) => {
     const fechaInicioStr = formatDate(fechaInicio);
     const fechaFinStr = formatDate(fechaFin);
 
-    const query = `SELECT * FROM ventas WHERE fecha_venta BETWEEN ? AND ?`;
+    const query = 'SELECT * FROM ventas WHERE fecha_venta BETWEEN ? AND ?';
     db.query(query, [fechaInicioStr, fechaFinStr], (err, results) => {
         if (err) {
             return next(err);
@@ -40,7 +58,7 @@ router.get('/ventas', auth, (req, res, next) => {
 // Soporta formatos:
 // 1) { venta: 'productos_total_vendedor' }
 // 2) { productos, total_venta, vendedor }
-router.post('/ventas', auth, (req, res, next) => {
+router.post('/ventas', auth, validateBody(ventasBodySchema), (req, res, next) => {
     const { venta, productos, total_venta, vendedor } = req.body;
 
     let productosValue = productos;
@@ -69,14 +87,14 @@ router.post('/ventas', auth, (req, res, next) => {
     const id_venta = Date.now().toString();
     const fecha_venta = formatDate(new Date());
 
-    const query = `INSERT INTO ventas (id_venta, productos, total_venta, fecha_venta, vendedor) VALUES (?, ?, ?, ?, ?)`;
+    const query = 'INSERT INTO ventas (id_venta, productos, total_venta, fecha_venta, vendedor) VALUES (?, ?, ?, ?, ?)';
     db.query(query, [id_venta, productosValue, totalVentaValue, fecha_venta, vendedorValue], (err) => {
         if (err) {
             return next(err);
         }
         return res.status(201).json({
             message: 'Venta agregada exitosamente',
-            id_venta,
+            id_venta
         });
     });
 });
