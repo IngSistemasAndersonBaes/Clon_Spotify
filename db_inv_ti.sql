@@ -11,11 +11,13 @@ create table estados_equipo(
 
 create table usuarios(
     usuario varchar(20) primary key,
-    contrasena varchar(10) not null,
+    contrasena varchar(255) not null,
     nombre varchar(200) not null,
     area varchar(100) not null,
     correo varchar(50) null,
-    estado varchar(15) not null
+    estado varchar(15) not null,
+    rol varchar(20) not null default 'trabajador',
+    token_version int not null default 0
 );
 
 create table equipos(
@@ -55,6 +57,17 @@ create table ventas(
     total_venta double not null,
     fecha_venta date not null,
     vendedor varchar(20) not null
+);
+
+create table audit_logs(
+    id int auto_increment primary key,
+    usuario varchar(20) null,
+    rol varchar(20) null,
+    metodo varchar(10) not null,
+    ruta varchar(200) not null,
+    status int not null,
+    ip varchar(45) null,
+    creado_en timestamp default current_timestamp
 );
 
 insert into areas (area) values
@@ -97,13 +110,13 @@ INSERT INTO equipos (num_serie, equipo, area, descripcion, estado, responsable, 
 ('E009', 'Disco duro externo 2TB', 'marketing', 'Almacenamiento para backups', 'baja', NULL, '2022-08-22', '2022-09-01', '2023-10-30'),
 ('E010', 'Proyector Epson', 'sala juntas', 'Proyector 4K para presentaciones', 'mantenimiento', 'Elena Torres', '2023-07-07', '2023-07-10', '1900-01-01');
 
-INSERT INTO usuarios (usuario, contrasena, nombre, area, correo, estado) VALUES
-('crod', '12345', 'Carlos Rodriguez', 'Tecnologia', 'carlos.rodriguez@empresa.com', 'activo'),
-('jperez', 'abcde', 'Juan Perez', 'Administracion', 'juan.perez@empresa.com', 'activo'),
-('llopez', 'pass123', 'Laura Lopez', 'Ventas', 'laura.lopez@empresa.com', 'inactivo'),
-('sdiaz', 'clave99', 'Sofia Diaz', 'Soporte', 'sofia.diaz@empresa.com', 'reservado'),
-('etorres', 'qwerty', 'Elena Torres', 'Recursos Humanos', 'elena.torres@empresa.com', 'mantenimiento'),
-('psanchez', 'pw2023', 'Pedro Sanchez', 'Finanzas', 'pedro.sanchez@empresa.com', 'activo');
+INSERT INTO usuarios (usuario, contrasena, nombre, area, correo, estado, rol) VALUES
+('crod', '12345', 'Carlos Rodriguez', 'Tecnologia', 'carlos.rodriguez@empresa.com', 'activo', 'administrador'),
+('jperez', 'abcde', 'Juan Perez', 'Administracion', 'juan.perez@empresa.com', 'activo', 'trabajador'),
+('llopez', 'pass123', 'Laura Lopez', 'Ventas', 'laura.lopez@empresa.com', 'inactivo', 'trabajador'),
+('sdiaz', 'clave99', 'Sofia Diaz', 'Soporte', 'sofia.diaz@empresa.com', 'reservado', 'trabajador'),
+('etorres', 'qwerty', 'Elena Torres', 'Recursos Humanos', 'elena.torres@empresa.com', 'mantenimiento', 'trabajador'),
+('psanchez', 'pw2023', 'Pedro Sanchez', 'Finanzas', 'pedro.sanchez@empresa.com', 'activo', 'trabajador');
 
 INSERT INTO historial_mantenimientos (id_historial, num_serie, fecha_reporte, fecha_solucion, usuario_tecnico, falla, solucion) VALUES
 ('HIST001', 'E003', '2023-03-01', '2023-03-05', 'crod', 'Atasco de papel en impresora', 'Se realizó limpieza interna y reemplazo de rodillo'),
